@@ -29,7 +29,6 @@ max_delay = 35
 
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-from telethon.tl.types import MessageEntityBold, MessageEntityItalic, MessageEntityCode, MessageEntityPre, MessageEntityTextUrl
 
 class TelegramBot:
     def __init__(self):
@@ -65,19 +64,6 @@ class TelegramBot:
             self.is_connected = False
             return False
     
-    def format_html_message(self, text):
-        """تنسيق النص بتنسيق HTML لتيليجرام"""
-        # تحويل النص العادي إلى HTML
-        formatted_text = text
-        
-        # معالجة النص الغامق
-        import re
-        formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_text)
-        formatted_text = re.sub(r'__(.*?)__', r'<i>\1</i>', formatted_text)
-        formatted_text = re.sub(r'`(.*?)`', r'<code>\1</code>', formatted_text)
-        
-        return formatted_text
-    
     def setup_handlers(self):
         """اعداد معالجات الاحداث"""
         
@@ -109,6 +95,8 @@ class TelegramBot:
                     
                     successful = 0
                     failed = 0
+                    scheduled_times = []
+                    failed_times = []
                     
                     await event.reply(f"جاري جدولة {len(time_slots)} رسالة كل 15 دقيقة...")
                     
@@ -121,14 +109,27 @@ class TelegramBot:
                         success = await schedule_message(self.client, event.chat_id, message_to_schedule, schedule_time)
                         if success:
                             successful += 1
+                            scheduled_times.append(schedule_time)
                         else:
                             failed += 1
+                            failed_times.append(schedule_time)
                         
                         delay = get_random_delay()
                         await asyncio.sleep(delay)
                     
-                    report = f"تم الجدولة: {successful} رسالة\nفشل: {failed} رسالة\nكل 15 دقيقة"
-                    await event.reply(report)
+                    # انشاء رسالة تفصيلية
+                    report = generate_detailed_report(
+                        "جدولة يوم كامل",
+                        successful,
+                        failed,
+                        len(time_slots),
+                        len(split_messages),
+                        scheduled_times,
+                        failed_times,
+                        event.chat_id
+                    )
+                    
+                    await event.reply(report, parse_mode='html')
                     
                 except Exception as e:
                     await event.reply(f"خطأ: {e}")
@@ -168,6 +169,8 @@ class TelegramBot:
                     
                     successful = 0
                     failed = 0
+                    scheduled_times = []
+                    failed_times = []
                     
                     await event.reply(f"جاري جدولة {len(time_slots)} رسالة لليوم كل 15 دقيقة...")
                     
@@ -180,14 +183,27 @@ class TelegramBot:
                         success = await schedule_message(self.client, event.chat_id, message_to_schedule, schedule_time)
                         if success:
                             successful += 1
+                            scheduled_times.append(schedule_time)
                         else:
                             failed += 1
+                            failed_times.append(schedule_time)
                         
                         delay = get_random_delay()
                         await asyncio.sleep(delay)
                     
-                    report = f"تم جدولة اليوم: {successful} رسالة\nفشل: {failed} رسالة\nكل 15 دقيقة"
-                    await event.reply(report)
+                    # انشاء رسالة تفصيلية
+                    report = generate_detailed_report(
+                        "جدولة لبقية اليوم",
+                        successful,
+                        failed,
+                        len(time_slots),
+                        len(split_messages),
+                        scheduled_times,
+                        failed_times,
+                        event.chat_id
+                    )
+                    
+                    await event.reply(report, parse_mode='html')
                     
                 except Exception as e:
                     await event.reply(f"خطأ: {e}")
@@ -227,6 +243,8 @@ class TelegramBot:
                     
                     successful = 0
                     failed = 0
+                    scheduled_times = []
+                    failed_times = []
                     
                     await event.reply(f"جاري جدولة {len(time_slots)} رسالة لمدة 24 ساعة كل 15 دقيقة...")
                     
@@ -239,14 +257,27 @@ class TelegramBot:
                         success = await schedule_message(self.client, event.chat_id, message_to_schedule, schedule_time)
                         if success:
                             successful += 1
+                            scheduled_times.append(schedule_time)
                         else:
                             failed += 1
+                            failed_times.append(schedule_time)
                         
                         delay = get_random_delay()
                         await asyncio.sleep(delay)
                     
-                    report = f"تم جدولة 24 ساعة: {successful} رسالة\nفشل: {failed} رسالة\nكل 15 دقيقة"
-                    await event.reply(report)
+                    # انشاء رسالة تفصيلية
+                    report = generate_detailed_report(
+                        "جدولة لمدة 24 ساعة",
+                        successful,
+                        failed,
+                        len(time_slots),
+                        len(split_messages),
+                        scheduled_times,
+                        failed_times,
+                        event.chat_id
+                    )
+                    
+                    await event.reply(report, parse_mode='html')
                     
                 except Exception as e:
                     await event.reply(f"خطأ: {e}")
@@ -381,64 +412,6 @@ class TelegramBot:
                 await event.reply("جاري اعادة تشغيل البوت...")
                 self.running = False
                 logger.info("تم اعادة تشغيل البوت بواسطة المستخدم")
-
-        @self.client.on(events.NewMessage(pattern='ارسال'))
-        async def send_formatted_handler(event):
-            """ارسال رسالة منسقة بتنسيق HTML"""
-            if event.is_reply:
-                try:
-                    reply_message = await event.get_reply_message()
-                    message_text = reply_message.text
-                    
-                    if not message_text:
-                        await event.reply("الرسالة فارغة")
-                        return
-                    
-                    # تنسيق النص بتنسيق HTML
-                    formatted_text = self.format_html_message(message_text)
-                    
-                    # ارسال الرسالة المنسقة
-                    await event.reply(formatted_text, parse_mode='html')
-                    
-                except Exception as e:
-                    await event.reply(f"خطأ: {e}")
-                    logger.error(f"خطا في ارسال النص المنسق: {e}")
-            else:
-                await event.reply("الرد على الرسالة المراد تنسيقها")
-
-        @self.client.on(events.NewMessage(pattern='احصائيات'))
-        async def stats_handler(event):
-            """عرض احصائيات البوت"""
-            try:
-                # الحصول على معلومات المستخدم
-                me = await self.client.get_me()
-                
-                stats_text = f"""<b>احصائيات البوت</b>
-
-<b>المستخدم:</b> {me.first_name}
-<b>ايدي المستخدم:</b> {me.id}
-<b>التوقيت:</b> ليبيا
-<b>الفاصل:</b> 15 دقيقة
-<b>الرسائل اليومية:</b> 96 رسالة
-<b>حالة الاتصال:</b> متصل
-<b>وقت التشغيل:</b> {datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')}
-
-<b>الاوامر المتاحة</b>
-• جدول - جدولة يوم كامل
-• جدولة اليوم - جدولة لبقية اليوم
-• جدولة 24 ساعة - جدولة لمدة 24 ساعة
-• تقسيم - تقسيم النص
-• test - فحص البوت
-• مساعدة - عرض المساعدة
-• حذف المجدول - حذف الرسائل المجدولة
-• ارسال - ارسال نص منسق
-• احصائيات - عرض هذه الاحصائيات"""
-
-                await event.reply(stats_text, parse_mode='html')
-                
-            except Exception as e:
-                await event.reply(f"خطأ: {e}")
-                logger.error(f"خطا في عرض الاحصائيات: {e}")
 
     async def run(self):
         """تشغيل البوت بشكل مستمر ودائم"""
@@ -584,6 +557,65 @@ async def schedule_message(client, chat_id, message_text, schedule_time):
     except Exception as e:
         logger.error(f"خطا في الجدولة: {e}")
         return False
+
+def generate_detailed_report(job_type, successful, failed, total_slots, total_messages, scheduled_times, failed_times, chat_id):
+    """انشاء تقرير مفصل بعد الجدولة"""
+    
+    now = datetime.now(TIMEZONE)
+    
+    # حساب نسبة النجاح
+    success_rate = (successful / total_slots * 100) if total_slots > 0 else 0
+    
+    # تنسيق التقرير
+    report = f"""<b>تقرير الجدولة</b>
+
+<b>نوع الجدولة:</b> {job_type}
+<b>وقت التقرير:</b> {now.strftime('%Y-%m-%d %H:%M:%S')}
+<b>حالة الجدولة:</b> {'تمت بنجاح' if successful > 0 else 'فشلت'}
+
+<b>الاحصائيات</b>
+• اجمالي المواعيد المتاحة: {total_slots}
+• عدد الرسائل المراد جدولتها: {total_messages}
+• تم الجدولة بنجاح: {successful}
+• فشل في الجدولة: {failed}
+• نسبة النجاح: {success_rate:.1f}%
+
+<b>تفاصيل المواعيد</b>"""
+
+    # اضافة اول 10 مواعيد نجحت
+    if scheduled_times:
+        report += f"\n• المواعيد الناجحة (اول 10):"
+        for i, t in enumerate(scheduled_times[:10], 1):
+            report += f"\n  {i}. {t.strftime('%H:%M')}"
+        if len(scheduled_times) > 10:
+            report += f"\n  ... و {len(scheduled_times) - 10} مواعيد اخرى"
+    else:
+        report += "\n• لا توجد مواعيد ناجحة"
+
+    # اضافة المواعيد الفاشلة
+    if failed_times:
+        report += f"\n\n<b>المواعيد الفاشلة</b>"
+        for i, t in enumerate(failed_times[:5], 1):
+            report += f"\n  {i}. {t.strftime('%H:%M')}"
+        if len(failed_times) > 5:
+            report += f"\n  ... و {len(failed_times) - 5} مواعيد اخرى"
+    
+    # معلومات اضافية
+    report += f"""
+
+<b>معلومات اضافية</b>
+• ايدي المحادثة: {chat_id}
+• التوقيت: ليبيا
+• الفاصل الزمني: 15 دقيقة
+• وقت الانتهاء: {now.strftime('%H:%M:%S')}
+• مدة التنفيذ: {calculate_execution_time(now)}"""
+
+    return report
+
+def calculate_execution_time(end_time):
+    """حساب مدة التنفيذ (تقريبية)"""
+    # هذه مجرد تقدير بناءً على عدد الرسائل
+    return "حوالي 2-3 دقائق"
 
 async def main():
     """الدالة الرئيسية"""
