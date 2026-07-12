@@ -15,10 +15,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# بيانات API - من متغيرات البيئة
-API_ID = int(os.getenv('API_ID', '20529343'))
-API_HASH = os.getenv('API_HASH', '656199efaf0935e731164fb9d02e4aa6')
-SESSION_STRING = os.getenv('SESSION_STRING', '')
+# ============================================
+# ضع بياناتك هنا مباشرة (بدون .env)
+# ============================================
+
+# 1. ضع الجلسة هنا - انسخ النص الطويل بين الأقواس
+SESSION_STRING = "1BJWap1sAUFMlagoNRgc6EAfVaK5n0BMCo8G75Z7FVoZtWwAvQONi6DIBOmGsqLeBU8PEhl3HMWUGMBIgYcz-pl-fGNYiNjOGNgMHdXDyFmF14SX-1EjrrOE5u0O1pJIvKrlafqrZDahn1uPVts3SVtm63xwmjNKUSTDqMz_B0MyKmCuNjbPAZ8eWGiL2zZrKzGzF0yf5eUzn8HNY-0cRN8jCVruSDxuWKqo-nqDm-5OZbVx2XcuMwurrSxB9Rxb4TxU2u_GSM_9ozElFomhYSP4VVYSf70zb8L_Y_Bm7jIqIdCjkkiSowtLNIMiQd1VNI2m3CoI9A5LxVSZDB7o03HmOkePNLRY="
+
+# 2. ضع API_ID هنا
+API_ID = 20529343
+
+# 3. ضع API_HASH هنا
+API_HASH = "656199efaf0935e731164fb9d02e4aa6"
+
+# ============================================
+# انتهى الجزء المعدل
+# ============================================
 
 TIMEZONE = pytz.timezone('Africa/Tripoli')
 
